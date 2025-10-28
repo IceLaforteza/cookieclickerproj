@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Money OOP (minimal)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="cookie_counter">Money: 0</div>
+  <button id="cookie_btn">Make Money</button>
+  <button id="upgrade_btn">Upgrade (10)</button>
+
+  <!-- playfield for falling/stacks -->
+  <div id="playfield" aria-hidden="true"></div>
+
+  <script>
+    'use strict';
+
+    class MoneyGame {
+      constructor({ counterEl, playfieldEl, makeBtn, upgradeBtn, cost = 10 }) {
+        this.counterEl = counterEl;
+        this.playfieldEl = playfieldEl;
+        this.makeBtn = makeBtn;
+        this.upgradeBtn = upgradeBtn;
+
+        this.money = 0;
+        this.power = 1;
+        this.COST = cost;
+        this.bills = [];        // <span> elements
+
+        // simple grid sizes
+        this.cellW = 28;
+        this.cellH = 32;
+        this.margin = 8;
+
+        this.makeBtn.addEventListener('click', () => this.click());
+        this.upgradeBtn.addEventListener('click', () => this.upgrade());
+        window.addEventListener('resize', () => this.layoutBills());
+
+        this.updateUI();
+      }
+
+      click() {
+        for (let i = 0; i < this.power; i++) this.spawnBill();
+        this.updateUI();
+      }
+
+      upgrade() {
+        if (this.money < this.COST) return;
+        for (let i = 0; i < this.COST; i++) this.removeLastBill();
+        this.power += 1;
+        this.makeBtn.textContent = `Make Money (+${this.power})`;
+        this.updateUI();
+      }
+
+      updateUI() {
+        this.money = this.bills.length;
+        this.counterEl.textContent = `Money: ${this.money}`;
+        this.upgradeBtn.disabled = this.money < this.COST;
+      }
+
+      spawnBill() {
+        const el = document.createElement('span');
+        el.className = 'bill';
+        el.textContent = '💵';
+
+        // start above screen at random x
+        const startX = Math.floor(Math.random() * (window.innerWidth - this.cellW));
+        el.style.left = startX + 'px';
+        el.style.top  = '-40px';
+
+        this.playfieldEl.appendChild(el);
+        this.bills.push(el);
+
+        // snap all into grid; CSS transition animates the fall
+        this.layoutBills();
+      }
+
+      removeLastBill() {
+        const el = this.bills.pop();
+        if (!el) return;
+        el.style.transition = 'transform .2s ease, opacity .2s ease, top .2s ease, left .2s ease';
+        el.style.transform = 'scale(.6)';
+        el.style.opacity = '.2';
+        setTimeout(() => el.remove(), 200);
+        this.layoutBills();
+      }
+
+      layoutBills() {
+        const W = window.innerWidth;
+        const H = window.innerHeight;
+        const cols = Math.max(1, Math.floor(W / this.cellW));
+        const baseY = H - this.margin;
+
+        this.bills.forEach((el, i) => {
+          const col = i % cols;
+          const row = Math.floor(i / cols);
+          el.style.left = (col * this.cellW + 4) + 'px';
+          el.style.top  = (baseY - (row + 1) * this.cellH) + 'px';
+        });
+      }
+    }
+
+    // Boot with your existing element IDs
+    const game = new MoneyGame({
+      counterEl: document.getElementById('cookie_counter'),
+      playfieldEl: document.getElementById('playfield'),
+      makeBtn: document.getElementById('cookie_btn'),
+      upgradeBtn: document.getElementById('upgrade_btn'),
+      cost: 10
+    });
+    window.game = game; // optional for console
+  </script>
+</body>
+</html>
